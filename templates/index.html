@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Color Extraction</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .color-box {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #000;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background: #eee;
+        }
+    </style>
+</head>
+<body>
+
+<h2>วิเคราะห์สีจากรูป</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    <input type="file" name="image" required>
+    <button type="submit">วิเคราะห์สี</button>
+</form>
+
+{% if image %}
+    <h3>รูปที่อัปโหลด</h3>
+    <img src="{{ image }}" width="300">
+{% endif %}
+
+{% if colors %}
+    <h3>ผลลัพธ์</h3>
+
+    <table>
+        <tr>
+            <th>สี</th>
+            <th>RGB</th>
+            <th>HEX</th>
+            <th>พื้นที่งาน (%)</th>
+            <th>พิมพ์แล้ว (%)</th>
+        </tr>
+
+        {% for c in colors %}
+        <tr>
+            <td>
+                <div class="color-box" style="background: {{ c.hex }}"></div>
+            </td>
+            <td>{{ c.rgb }}</td>
+            <td>{{ c.hex }}</td>
+            <td>{{ c.area }}</td>
+            <td>{{ c.printed }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h3>สรุป</h3>
+    <p><b>พื้นที่งานรวม:</b> 100%</p>
+    <p><b>พิมพ์แล้วรวม:</b> {{ printed_total }}%</p>
+{% endif %}
+
+</body>
+</html>
