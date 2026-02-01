@@ -4,18 +4,17 @@ import numpy as np
 import os
 
 app = Flask(__name__)
-
 UPLOAD_FOLDER = "static"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
 def rgb_to_hex(rgb):
-    return "#{:02x}{:02x}{:02x}".format(rgb[0], rgb[1], rgb[2])
+    return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
 
 
 # -----------------------------
-# หา K อัตโนมัติจากรูป
+# หา K อัตโนมัติ
 # -----------------------------
 def find_best_k(pixels, max_k=12):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
@@ -39,7 +38,7 @@ def find_best_k(pixels, max_k=12):
 
 
 # -----------------------------
-# วิเคราะห์สี (ขาว = พิมพ์)
+# วิเคราะห์สี (รวมสีขาว)
 # -----------------------------
 def extract_colors(image_path):
     img = cv2.imread(image_path)
@@ -58,40 +57,46 @@ def extract_colors(image_path):
 
     counts = np.bincount(labels.flatten())
 
-    colors = []
+    raw = []
 
-    # คำนวณพื้นที่สี
+    # คำนวณเปอร์เซ็นต์
     for i in range(K):
         r, g, b = centers[i].astype(int)
-        area = counts[i] / total_pixels * 100
+        percent = counts[i] / total_pixels * 100
 
-        colors.append({
+        raw.append({
             "rgb": (r, g, b),
             "hex": rgb_to_hex((r, g, b)),
-            "area": area,
-            "printed": area   # ✅ ขาวก็นับพิมพ์
+            "area": percent,
+            "printed": percent   # ✅ สีขาวก็นับ
         })
 
     # -----------------------------
-    # บังคับให้รวม = 100%
+    # ปรับให้รวม = 100% เป๊ะ
     # -----------------------------
-    area_sum = sum(c["area"] for c in colors)
+    area_sum = sum(c["area"] for c in raw)
     diff = 100 - area_sum
 
-    colors[0]["area"] += diff
-    colors[0]["printed"] += diff
+    raw[0]["area"] += diff
+    raw[0]["printed"] += diff
 
     # ปัดเลข
-    for c in colors:
+    for c in raw:
         c["area"] = round(c["area"], 2)
         c["printed"] = round(c["printed"], 2)
 
-    printed_total = round(sum(c["printed"] for c in colors), 2)
+    printed_total = round(sum(c["printed"] for c in raw), 2)
 
-    # เรียงจากมากไปน้อย
-    colors.sort(key=lambda x: x["area"], reverse=True)
+    # ชดเชยกรณีปัดแล้วไม่ครบ 100
+    if printed_total != 100:
+        adjust = round(100 - printed_total, 2)
+        raw[0]["printed"] = round(raw[0]["printed"] + adjust, 2)
+        printed_total = 100.0
 
-    return colors, printed_total
+    # เรียงจากพื้นที่มาก → น้อย
+    raw.sort(key=lambda x: x["area"], reverse=True)
+
+    return raw, printed_total
 
 
 # -----------------------------
@@ -104,7 +109,7 @@ def index():
     printed_total = 0
 
     if request.method == "POST":
-        file = request.files.get("image")
+        file = request.files["image"]
         if file:
             path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
             file.save(path)
@@ -121,4 +126,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)
